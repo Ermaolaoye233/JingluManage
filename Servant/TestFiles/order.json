@@ -1,0 +1,8 @@
+{
+	"id": 1, 
+	"jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySUQiOiIxIiwiaWF0IjoiMTYzMTQzNjk3Mi4xNTg2MjkyIn0.pBqmLKctV_1jh2NRJmqcWR7GiPMfjXkLcauTU5BE7h8",
+	"amount": 1,
+	"productID": 3,
+	"type": 1,
+	"price": 10.0
+}

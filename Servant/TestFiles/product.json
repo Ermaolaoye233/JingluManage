@@ -1,0 +1,9 @@
+{
+	"id": 1,
+	"jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VySUQiOiIxIiwiaWF0IjoiMTYzMTQzNjk3Mi4xNTg2MjkyIn0.pBqmLKctV_1jh2NRJmqcWR7GiPMfjXkLcauTU5BE7h8",
+	"name": "test product",
+	"price": 1.0,
+	"amount": 5,
+	"vipPrice": 0.5,
+	"type": "酒"
+}
