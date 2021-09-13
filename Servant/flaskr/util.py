@@ -51,3 +51,14 @@ def getUserID(para):
     dictData = [row[0] for row in cursor.fetchall()]
     userID = int(dictData[0])
     return userID
+
+def getUserAuthority(userID) -> int:
+    """
+    Parameters:
+    userID      int, ID of the user
+    """
+    sql = '''SELECT authority FROM Users WHERE id = %i''' % userID
+    db = get_db()
+    cursor = db.execute(sql)
+    dictData = [row[0] for row in cursor.fetchall()]
+    return int(dictData[0])

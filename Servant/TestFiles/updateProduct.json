@@ -1,0 +1,9 @@
+{
+	"id": 2,
+	"jwt": "1",
+	"productID": 1,
+	"name": "newnew name",
+	"price": 2323.0,
+	"vipPrice": 233.0,
+	"type": 0
+}
