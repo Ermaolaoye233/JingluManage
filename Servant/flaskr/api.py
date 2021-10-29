@@ -2,6 +2,7 @@ from flask import Blueprint, request, abort
 from .db import get_db
 from .jwt import get_userJWT
 from .util import query2Json, JWTverification, getUserID, getUserAuthority
+from datetime import datetime
 
 class NestedBlueprint(object): # Object for creating nested blueprint
     def __init__(self, blueprint, prefix):
@@ -24,6 +25,7 @@ APIblueprint = Blueprint('api', __name__, url_prefix='/api')
 Users = NestedBlueprint(APIblueprint, 'Users')
 Products = NestedBlueprint(APIblueprint, 'Products')
 Orders = NestedBlueprint(APIblueprint, 'Orders')
+Types = NestedBlueprint(APIblueprint, 'Types')
 
 # ttl: Users
 @Users.route('/description/<int:user_id>', methods=('GET', 'POST'))
@@ -32,7 +34,7 @@ def get_user_description(user_id=1):
     Parameters:
     user_id             前端请求的用户ID
     """
-    sql = """SELECT phone, name FROM Users WHERE id = %i"""
+    sql = """SELECT * FROM Users WHERE id = %i"""
     para = user_id
     json = query2Json(sql=sql, para=para, abort400=True)
     return json
@@ -68,11 +70,12 @@ def user_login():
             db.commit()
             db.execute('''UPDATE Users SET jwt="%s" WHERE phone="%s"''' % (JWT, user['phone']))
             db.commit()
-            newSql = '''SELECT id FROM Users WHERE phone="%s"''' % (user['phone'])
-            cursor = db.execute(newSql)
-            dictData = [row[0] for row in cursor.fetchall()]
-            db_userID = int(dictData[0])
-            return "JWT:" + JWT + ";ID:" + str(db_userID)
+            newSql = '''SELECT id, phone, name, jwt FROM Users WHERE phone="%s"'''
+            para = user['phone']
+            json = query2Json(sql=newSql, para=para, abort400=True)
+            return json
+        else:
+            abort(401)
 
 @Users.route('/updatePassword', methods=('GET','POST'))
 def update_password():
@@ -96,24 +99,63 @@ def update_password():
         db.commit()
         return "Succeed"
 
+@Users.route('/calculateTotalIncome/<int:user_id>')
+def get_user_total_income(user_id=1):
+    sql = """SELECT SUM(price) FROM Orders WHERE userID = %i AND type = 1"""
+    para = user_id
+    db = get_db()
+    cursor = db.execute(sql % para)
+    dictData = [dict(row) for row in cursor.fetchall()]
+    sumPriceDict = dictData.pop()
+    return str(sumPriceDict['SUM(price)'])
+
+@Users.route('/calculateThisMonthIncome/<int:user_id>')
+def get_user_this_month_income(user_id=1):
+    now = datetime.now()
+    formatedTime = now.strftime("%Y-%m")
+    sql = '''SELECT SUM(price) FROM Orders WHERE userID = %i AND type = 1 AND strftime('%%Y-%%m', time) = "%s"''' % (user_id, formatedTime)
+    db = get_db()
+    cursor = db.execute(sql)
+    dictData = [dict(row) for row in cursor.fetchall()]
+    sumPriceDict = dictData.pop()
+    return str(sumPriceDict['SUM(price)'])
+
 # ttl: Products
 @Products.route('/description/<int:product_id>', methods=('GET','POST'))
 def get_product_description(product_id=1):
-    sql = """SELECT id, name, amount, price FROM Products WHERE id=%i"""
+    sql = """SELECT id, name, amount, inPrice, price, vipPrice, barcode, type FROM Products WHERE id=%i"""
     para = product_id
     json = query2Json(sql=sql,para=para, abort400=True)
     return json
 
+@Products.route('/descriptionLatest', methods=('GET','POST'))
+def get_product_description_latest():
+    """
+    JSON Requirement
+    id      ID of the userID
+    jwt     jwt stored in the frontend
+    """
+    if request.method == 'POST':
+        product = request.json
+        #JWT verification
+        if not JWTverification(JWT = str(product['jwt']), userID = int(product['id'])):
+            abort(401)
+        sql = '''SELECT * FROM Products WHERE id IN (SELECT productID FROM Orders)'''
+        para = ()
+        json = query2Json(sql=sql, para=para)
+        return json
+
+
 @Products.route('/Flist/<string:user_input>')
 def get_list_product_description(user_input):
-    sql = """SELECT id, name, amount, price, barcode FROM Products WHERE name LIKE '%s'"""
+    sql = """SELECT id, name, amount, inPrice, price, vipPrice, barcode, type FROM Products WHERE name LIKE '%s'"""
     para = "%" + user_input + "%"
     json = query2Json(sql=sql, para=para, abort400=True)
     return json
 
 @Products.route('/Ftype/<int:product_type>')
 def get_product_description_by_type(product_type):
-    sql = """SELECT id, name, amount, price, barcode FROM Products WHERE type=%i"""
+    sql = """SELECT id, name, amount, inPrice, price, vipPrice, barcode, type FROM Products WHERE type=%i"""
     para = product_type
     json = query2Json(sql=sql, para=para, abort400=True)
     return json
@@ -125,6 +167,7 @@ def add_product():
     id      ID of the user wants to add the product
     jwt     jwt stored in the frontend
     name    name of the product
+    inPrice the price taken to purchase the product
     price   price of the product
     vipPrice vipPrice of the product
     type    type of the product
@@ -135,7 +178,7 @@ def add_product():
         if not JWTverification(JWT = str(product['jwt']), userID = int(product['id'])):
             abort(401)
         db = get_db()
-        sql = '''INSERT INTO Products(name, amount, price, vipPrice, type) VALUES ("%s", %i, %f, %f, "%s")''' % (product['name'], product['amount'], product['price'], product['vipPrice'], product['type'])
+        sql = '''INSERT INTO Products(name, amount, inPrice, price, vipPrice, type) VALUES ("%s", %i, %f, %f, %f, "%s")''' % (product['name'], product['amount'], product['inPrice'], product['price'], product['vipPrice'], product['type'])
         db.execute(sql)
         db.commit()
         return 'Succeed'
@@ -148,6 +191,7 @@ def update_product():
     jwt     jwt stored in the frontend
     productID ID of the product being update_product
     name    new name
+    inPrice new inPrice
     price   new price
     vipPrice new vipPrice
     type    new type
@@ -158,7 +202,7 @@ def update_product():
         if not JWTverification(JWT = str(product['jwt']), userID = int(product['id'])):
             abort(401)
         db = get_db()
-        sqlCode = '''UPDATE Products SET name=\'%s\', price=%f, vipPrice=%f, type=%i WHERE id=%i''' % (product['name'], product['price'], product['vipPrice'], product['type'], product['productID'])
+        sqlCode = '''UPDATE Products SET name=\'%s\', inPrice=%f ,price=%f, vipPrice=%f, type=%i WHERE id=%i''' % (product['name'], product['inPrice'],product['price'], product['vipPrice'], product['type'], product['productID'])
         userAuthority = getUserAuthority(product['id'])
         if userAuthority == 0: # 员工
             content = 'update product with id:' + str(product['productID'])
@@ -186,11 +230,30 @@ def get_order_description():
         #JWT verification
         if not JWTverification(JWT = str(order['jwt']), userID = int(order['id'])):
             abort(401)
-        sql = '''SELECT userID, productID, amount, price, description, type FROM Orders WHERE id=%i'''
+        sql = '''SELECT id, userID, productID, amount, price, description, type, time FROM Orders WHERE id=%i'''
         para = order['orderID']
         json = query2Json(sql=sql, para=para, abort400=True)
         return json
-        
+
+@Orders.route('/descriptionLatest', methods=('GET','POST'))
+def get_order_description_latest():
+    """
+    JSON Requirement
+    id      ID of the userID
+    jwt     jwt stored in the frontend
+    """
+    if request.method == 'POST':
+        order = request.json
+        #JWT verification
+        if not JWTverification(JWT = str(order['jwt']), userID = int(order['id'])):
+            abort(401)
+        sql = '''SELECT * FROM(
+        SELECT * FROM Orders ORDER BY id DESC LIMIT 4
+        ) ORDER BY id ASC'''
+        para = ()
+        json = query2Json(sql=sql, para=para)
+        return json
+
 @Orders.route('/descriptionByProduct', methods=('GET', 'POST'))
 def get_order_description_by_productID():
     """
@@ -204,12 +267,43 @@ def get_order_description_by_productID():
         #JWT verification
         if not JWTverification(JWT = str(order['jwt']), userID = int(order['id'])):
             abort(401)
-        sql = '''SELECT userID, productID, amount, price, description, type FROM Orders WHERE productID=%i'''
+        sql = '''SELECT id, userID, productID, amount, price, description, type, time FROM Orders WHERE productID=%i'''
         para = order['productID']
         json = query2Json(sql=sql, para=para, abort400=True)
         return json
 
-@Orders.route('descriptionByUser', methods=('GET','POST'))
+@Orders.route('/descriptionByDay', methods=('GET','POST'))
+def get_order_description_by_day():
+    """
+    JSON Requirement
+    id      use id
+    jwt     jwt stored in the frontend
+    date    date of the request orders
+    prodSpec product specific?
+    userSpec user specific?
+    productID   ID of the product
+    userID  ID of the user 
+    """
+    if request.method == 'POST':
+        order = request.json
+        #JWT verfication
+        if not JWTverification(JWT = str(order['jwt']), userID = int(order['id'])):
+            abort(401)
+        sql = ""
+        para = ()
+        if order['prodSpec']==0 and order['userSpec'] == 0:
+            sql = '''SELECT id, userID, productID, amount, price, description, type, time FROM Orders WHERE time LIKE "%s"'''
+            para = order['date'] + "%"
+        if order['prodSpec'] == 1:
+            sql = '''SELECT id, userID, productID, amount, price, description, type, time FROM Orders WHERE time LIKE "%s" AND productID=%i'''
+            para = (order['date'] + "%", order['productID'])
+        if order['userSpec'] == 1:
+            sql = '''SELECT id, userID, productID, amount, price, description, type, time FROM Orders WHERE time LIKE "%s" AND userID=%i'''
+            para = (order['date'] + "%", order['userID'])
+        json = query2Json(sql=sql,para=para)
+        return json
+
+@Orders.route('/descriptionByUser', methods=('GET','POST'))
 def get_order_description_by_userID():
     """
     JSON Requirement
@@ -222,7 +316,7 @@ def get_order_description_by_userID():
         #JWT verification
         if not JWTverification(JWT = str(order['jwt']), userID = int(order['id'])):
             abort(401)
-        sql = '''SELECT userID, productID, amount, price, description, type FROM Orders WHERE userID=%i'''
+        sql = '''SELECT * FROM Orders WHERE userID=%i'''
         para = order['userID']
         json = query2Json(sql=sql, para=para, abort400=True)
         return json    
@@ -238,6 +332,7 @@ def add_order():
     productID ID of the product being ordered
     type    type of the order
     price   total price of the order
+    time    time of the order
     """
     if request.method == 'POST' :
         order = request.json
@@ -252,7 +347,7 @@ def add_order():
             sql = '''UPDATE Products SET amount = amount - %i WHERE id=%i''' % (order['amount'], order['productID'])
         db.execute(sql)
         db.commit()
-        sql = '''INSERT INTO Orders(userID, productID, amount, price, type) VALUES (%i, %i, %i, %f, %i)''' % (order['id'], order['productID'], order['amount'], order['price'], order['type'])
+        sql = '''INSERT INTO Orders(userID, productID, amount, price, type, time) VALUES (%i, %i, %i, %f, %i, %s)''' % (order['id'], order['productID'], order['amount'], order['price'], order['type'], order['time'])
         db.execute(sql)
         db.commit()
         return "Succeed"
@@ -323,3 +418,51 @@ def delete_order():
             db.execute(sqlCode)
             db.commit()
             return "Succeed"
+
+# ttl: Types
+@Types.route('/getAll')
+def get_types():
+    sqlCode = '''SELECT * FROM Types'''
+    para = ()
+    json = query2Json(sql=sqlCode, para=para)
+    return json
+
+@Types.route('/addType', methods=('GET','POST'))
+def add_type():
+    """
+    JSON Requirement
+    id  ID of the user stored in the frontend
+    jwt jwt stored in the frontend
+    name name of the new type
+    """
+    if request.method == 'POST':
+        data = request.json
+        #JWT verification
+        if not JWTverification(JWT = str(data['jwt']), userID = int(data['id'])):
+            abort(401)
+        db = get_db()
+        sqlCode = '''INSERT INTO Types(type) VALUES (%s)''' % data['name']
+        db.execute(sqlCode)
+        db.commit()
+        return 'Succeed'
+
+@Types.route('/changeName', methods=('GET','POST'))
+def update_type():
+    """
+    JSON Requirement
+    id id stored in the frontend
+    jwt jwt stored in the frontend
+    typeID id of the type
+    name name of the new type
+    """
+    if request.method == 'POST':
+        data = request.json
+        #JWT verification
+        if not JWTverification(JWT = str(data['jwt']), userID = int(data['id'])):
+            abort(401)
+        db = get_db()
+        sqlCode = '''UPDATE Products SET name=\'%s\' WHERE id = %i''' % (data['name'], data['typeID'])
+        db.execute(sqlCode)
+        db.commit()
+        return "Succeed"
+
