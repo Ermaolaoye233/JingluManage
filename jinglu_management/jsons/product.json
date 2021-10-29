@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "name": "name",
+  "amount": 1,
+  "price": 11.0,
+  "vipPrice": 11.0,
+  "barcode": "barcode",
+  "type": 1
+}

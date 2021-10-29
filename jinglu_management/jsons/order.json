@@ -1,0 +1,9 @@
+{
+  "id": 123,
+  "userID": 1,
+  "productID": 1,
+  "amount": 2,
+  "price": 1.0,
+  "description": "some description",
+  "type": 1
+}
