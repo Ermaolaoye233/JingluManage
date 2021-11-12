@@ -3,6 +3,8 @@ import 'package:jinglu_management/models/order.dart';
 import 'package:jinglu_management/views/orderDescription.dart';
 import 'package:jinglu_management/models/product.dart';
 import 'package:jinglu_management/dio_client.dart';
+import 'package:jinglu_management/models/images.dart';
+import 'dart:convert';
 
 class OrderRow extends StatelessWidget {
   OrderRow({
@@ -34,9 +36,13 @@ class OrderRow extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8.0),
-                      child: Image(
-                        image: AssetImage("images/placeholder.jpg"),
+                      child: Image.memory(
+                        product.image == "no_image"
+                            ? base64Decode(placeholder_b64String)
+                            : base64Decode(product.image),
                         width: 68,
+                        height: 68,
+                        fit: BoxFit.fill,
                       ),
                     ),
                     Padding(

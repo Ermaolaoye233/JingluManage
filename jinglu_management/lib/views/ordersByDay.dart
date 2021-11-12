@@ -93,15 +93,17 @@ class _OrderListByDayState extends State<OrderListByDay> {
                         ),),
                       );
                     }
-                    return ListView.builder(
-                      itemCount: orders.length == 0 ? 0 : orders.length,
-                        shrinkWrap: true,
-                        itemBuilder: (BuildContext context, int index){
-                          return ListTile(
-                            contentPadding: EdgeInsets.fromLTRB(24, 8, 24, 0),
-                            title: OrderRow(order: orders[index],),);
-                        }
-                      );
+                    return Expanded(
+                      child: ListView.builder(
+                        itemCount: orders.length == 0 ? 0 : orders.length,
+                          shrinkWrap: true,
+                          itemBuilder: (BuildContext context, int index){
+                            return ListTile(
+                              contentPadding: EdgeInsets.fromLTRB(24, 8, 24, 0),
+                              title: OrderRow(order: orders[index],),);
+                          }
+                        ),
+                    );
                   }
                 }
                 return CircularProgressIndicator();

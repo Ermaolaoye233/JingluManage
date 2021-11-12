@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:jinglu_management/views/orderDescription.dart';
-import 'package:jinglu_management/models/order.dart';
-import 'package:jinglu_management/models/product.dart';
-import 'package:jinglu_management/views/defaultView.dart';
+import 'package:jinglu_management/views/firstView.dart';
 import 'package:jinglu_management/views/mainMenu.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 void main() {
@@ -47,7 +44,7 @@ class MyApp extends StatelessWidget {
           bodyColor: Color(0x263238FF)
         )
       ),
-      home: MainMenu(),
+      home: FirstView(),
     );
   }
 }

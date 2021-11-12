@@ -13,7 +13,7 @@ import 'dart:convert';
 class DioClient {
   final Dio _dio = Dio();
 
-  final _baseUrl = 'http://192.168.31.120:5000/api/';
+  final _baseUrl = 'http://192.168.31.110:5000/api/';
 
   // Users
   Future<User?> userLogin({required LoginUser loginUser}) async {
@@ -42,6 +42,7 @@ class DioClient {
     } on DioError catch (error) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx and is also not 304
+
       if (error.response != null) {
         print('Dio Error!');
         print('STATUS: ${error.response?.statusCode}');
@@ -54,7 +55,6 @@ class DioClient {
       }
     }
   }
-
 
   // Products
   Future<Product?> getProductDescription({required String id}) async {
@@ -80,6 +80,64 @@ class DioClient {
       }
     }
     return product;
+  }
+
+  Future<List<Product>?> getListProductDescriptionByType(
+      {required int typeID}) async {
+    List<Product>? products = [];
+    try {
+      Response productData =
+          await _dio.get(_baseUrl + 'Products/Ftype/$typeID');
+      List<dynamic> list = json.decode(productData.data);
+      list.forEach((element) {
+        products.add(Product.fromJson(element));
+      });
+    } on DioError catch (error) {
+   // The request was made and teh server responded with a status code
+   // that falls out of the range of 2xx and is also not 304
+      if (error.response != null) {
+        print('Dio Error!');
+        print('STATUS: ${error.response?.statusCode}');
+        print('DATA: ${error.response?.data}');
+        print('HEADERS: ${error.response?.headers}');
+      } else {
+    // Error due to setting up or sending the request
+        print('Error sending request!');
+        print(error.message);
+      }
+    }
+    return products;
+  }
+
+  Future<Product?> getListProductDescriptionByBarcode(
+  {required String barcode}) async {
+    List<Product>? products = [];
+    try {
+      Response productData =
+          await _dio.get(_baseUrl + 'Products/FBarcode/$barcode');
+      List<dynamic> list = json.decode(productData.data);
+      list.forEach((element) {
+        products.add(Product.fromJson(element));
+      });
+    } on DioError catch (error) {
+      // The request was made and teh server responded with a status code
+      // that falls out of the range of 2xx and is also not 304
+      if (error.response != null) {
+        if (error.response!.statusCode == 400) {
+          // The product requested does not exist
+          return null;
+        }
+        print('Dio Error!');
+        print('STATUS: ${error.response?.statusCode}');
+        print('DATA: ${error.response?.data}');
+        print('HEADERS: ${error.response?.headers}');
+      } else {
+        // Error due to setting up or sending the request
+        print('Error sending request!');
+        print(error.message);
+      }
+    }
+    return products[0];
   }
 
   Future<List<Product>?> getListProductDescription(
@@ -128,8 +186,11 @@ class DioClient {
       });
     } on DioError catch (error) {
       // The request was made and teh server responded with a status code
-      // that falls out of the range of 2xx and is also not 304
-      if (error.response != null) {
+      // that falls out of the range of 2xx and is also not 304),
+    if (error.response != null) {
+      if(error.response!.statusCode == 401) {
+        prefs.setString('jwt', 'no_jwt');
+      }
         print('Dio Error!');
         print('STATUS: ${error.response?.statusCode}');
         print('DATA: ${error.response?.data}');
@@ -141,6 +202,46 @@ class DioClient {
       }
     }
     return products;
+  }
+
+  Future<bool?> addProduct({required Product product}) async {
+    String returnMessage;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      Map<String, dynamic> data = {
+        'id': prefs.getInt('userID'),
+        'jwt': prefs.getString('jwt'),
+        'name': product.name,
+        'inPrice': product.inPrice,
+        'price': product.price,
+        'vipPrice': product.vipPrice,
+        'barcode': product.barcode,
+        'type': product.type,
+        'image': product.image
+      };
+      Response response = await _dio.post(_baseUrl + 'Products/addProduct', data: data);
+      print('resposne ${response.data}');
+      if (response.data == "Succeed"){
+        return true;
+      }
+      return false;
+    } on DioError catch (error) {
+      // The request was made and teh server responded with a status code
+      // that falls out of the range of 2xx and is also not 304
+      if (error.response != null) {
+        if(error.response!.statusCode == 401) {
+          prefs.setString('jwt', 'no_jwt');
+        }
+        print('Dio Error!');
+        print('STATUS: ${error.response?.statusCode}');
+        print('DATA: ${error.response?.data}');
+        print('HEADERS: ${error.response?.headers}');
+      } else {
+        // Error due to setting up or sending the request
+        print('Error sending request!');
+        print(error.message);
+      }
+    }
   }
 
   // Orders
@@ -166,6 +267,9 @@ class DioClient {
       // The request was made and teh server responded with a status code
       // that falls out of the range of 2xx and is also not 304
       if (error.response != null) {
+        if(error.response!.statusCode == 401) {
+          prefs.setString('jwt', 'no_jwt');
+        }
         print('Dio Error!');
         print('STATUS: ${error.response?.statusCode}');
         print('DATA: ${error.response?.data}');
@@ -202,6 +306,9 @@ class DioClient {
       // The request was made and teh server responded with a status code
       // that falls out of the range of 2xx and is also not 304
       if (error.response != null) {
+        if(error.response!.statusCode == 401) {
+          prefs.setString('jwt', 'no_jwt');
+        }
         print('Dio Error!');
         print('STATUS: ${error.response?.statusCode}');
         print('DATA: ${error.response?.data}');
@@ -239,6 +346,9 @@ class DioClient {
       // The request was made and teh server responded with a status code
       // that falls out of the range of 2xx and is also not 304
       if (error.response != null) {
+        if(error.response!.statusCode == 401) {
+          prefs.setString('jwt', 'no_jwt');
+        }
         print('Dio Error!');
         print('STATUS: ${error.response?.statusCode}');
         print('DATA: ${error.response?.data}');
@@ -272,6 +382,9 @@ class DioClient {
       // The request was made and teh server responded with a status code
       // that falls out of the range of 2xx and is also not 304
       if (error.response != null) {
+        if(error.response!.statusCode == 401) {
+          prefs.setString('jwt', 'no_jwt');
+        }
         print('Dio Error!');
         print('STATUS: ${error.response?.statusCode}');
         print('DATA: ${error.response?.data}');
@@ -285,10 +398,50 @@ class DioClient {
     return orders;
   }
 
+  Future<bool?> addOrders({required Order order}) async {
+    String returnMessage;
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    try {
+      Map<String, dynamic> data = {
+        'id': prefs.getInt('userID'),
+        'jwt': prefs.getString('jwt'),
+        'amount': order.amount,
+        'productID': order.productID,
+        'type': order.type,
+        'price': order.price,
+        'time': formatDate(DateTime.now(), [yyyy, '-', mm, '-', dd, 'T', hh, ':', nn, ':', ss]),
+        'description': order.description
+      };
+      print(data.toString());
+      Response response = await _dio.post(_baseUrl + 'Orders/addOrder', data: data);
+      print('resposne ${response.data}');
+      if (response.data == "Succeed"){
+        return true;
+      }
+      return false;
+    } on DioError catch (error) {
+      // The request was made and teh server responded with a status code
+      // that falls out of the range of 2xx and is also not 304
+      if (error.response != null) {
+        if(error.response!.statusCode == 401) {
+          prefs.setString('jwt', 'no_jwt');
+        }
+        print('Dio Error!');
+        print('STATUS: ${error.response?.statusCode}');
+        print('DATA: ${error.response?.data}');
+        print('HEADERS: ${error.response?.headers}');
+      } else {
+        // Error due to setting up or sending the request
+        print('Error sending request!');
+        print(error.message);
+      }
+    }
+  }
+
   // Types
   Future<List<ProductType>?> getListProductType() async {
     List<ProductType>? types = [];
-    try{
+    try {
       Response response = await _dio.get(_baseUrl + 'Types/getAll');
       print('order response ${response.data}');
       List<dynamic> list = json.decode(response.data);

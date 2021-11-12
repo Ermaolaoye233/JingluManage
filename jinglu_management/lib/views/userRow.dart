@@ -11,6 +11,8 @@ class UserRow extends StatelessWidget {
   final User user;
   final Widget subWidget;
 
+
+
   @override
   Widget build(BuildContext context) {
     return Row(

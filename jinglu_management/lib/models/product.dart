@@ -17,6 +17,7 @@ class Product {
     required this.vipPrice,
     required this.barcode,
     required this.type,
+    required this.image
   });
 
   final int id;
@@ -27,6 +28,7 @@ class Product {
   final double vipPrice;
   final String barcode;
   final int type;
+  final String image;
 
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -38,6 +40,7 @@ class Product {
     vipPrice: json["vipPrice"],
     barcode: json["barcode"],
     type: json["type"],
+    image: json['image'],
   );
 
   Map<String, dynamic> toJson() => {
@@ -49,13 +52,6 @@ class Product {
     "vipPrice": vipPrice,
     "barcode": barcode,
     "type": type,
+    'image': image,
   };
 }
-
-var sampleProduct = Product(id: 1, name: "贵州茅台酒", amount: 10, inPrice:1500.0 ,price: 1000.0, vipPrice: 900.0, barcode: "", type: 1);
-
-var testJson = {
-  "id": 2, "name": "test", "amount": 0, "inPrice": 1.0, "price": 2233.0, "vipPrice": 123.0, "barcode": "00", "type": 1
-};
-
-Product testJsonProduct = Product.fromJson(testJson);

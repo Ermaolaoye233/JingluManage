@@ -123,7 +123,7 @@ def get_user_this_month_income(user_id=1):
 # ttl: Products
 @Products.route('/description/<int:product_id>', methods=('GET','POST'))
 def get_product_description(product_id=1):
-    sql = """SELECT id, name, amount, inPrice, price, vipPrice, barcode, type FROM Products WHERE id=%i"""
+    sql = """SELECT * FROM Products WHERE id=%i"""
     para = product_id
     json = query2Json(sql=sql,para=para, abort400=True)
     return json
@@ -148,16 +148,23 @@ def get_product_description_latest():
 
 @Products.route('/Flist/<string:user_input>')
 def get_list_product_description(user_input):
-    sql = """SELECT id, name, amount, inPrice, price, vipPrice, barcode, type FROM Products WHERE name LIKE '%s'"""
+    sql = """SELECT * FROM Products WHERE name LIKE '%s'"""
     para = "%" + user_input + "%"
     json = query2Json(sql=sql, para=para, abort400=True)
     return json
 
 @Products.route('/Ftype/<int:product_type>')
 def get_product_description_by_type(product_type):
-    sql = """SELECT id, name, amount, inPrice, price, vipPrice, barcode, type FROM Products WHERE type=%i"""
+    sql = """SELECT * FROM Products WHERE type=%i"""
     para = product_type
     json = query2Json(sql=sql, para=para, abort400=True)
+    return json
+
+@Products.route('/FBarcode/<string:barcode>')
+def get_product_description_by_barcode(barcode):
+    sql = """SELECT * FROM Products WHERE barcode='%s'"""
+    para = barcode
+    json = query2Json(sql=sql,para=para,abort400=True)
     return json
 
 @Products.route('/addProduct', methods=('GET','POST'))
@@ -170,7 +177,9 @@ def add_product():
     inPrice the price taken to purchase the product
     price   price of the product
     vipPrice vipPrice of the product
+    barcode barcode of the product
     type    type of the product
+    image   image of the product
     """
     if request.method == 'POST':
         product = request.json
@@ -178,7 +187,7 @@ def add_product():
         if not JWTverification(JWT = str(product['jwt']), userID = int(product['id'])):
             abort(401)
         db = get_db()
-        sql = '''INSERT INTO Products(name, amount, inPrice, price, vipPrice, type) VALUES ("%s", %i, %f, %f, %f, "%s")''' % (product['name'], product['amount'], product['inPrice'], product['price'], product['vipPrice'], product['type'])
+        sql = '''INSERT INTO Products(name, amount,inPrice, price, vipPrice, type, barcode, image) VALUES ("%s", 0, %f, %f, %f, "%s", "%s", "%s")''' % (product['name'], product['inPrice'], product['price'], product['vipPrice'], product['type'], product['barcode'], product['image'])
         db.execute(sql)
         db.commit()
         return 'Succeed'
@@ -333,6 +342,7 @@ def add_order():
     type    type of the order
     price   total price of the order
     time    time of the order
+    description description of the order
     """
     if request.method == 'POST' :
         order = request.json
@@ -347,7 +357,7 @@ def add_order():
             sql = '''UPDATE Products SET amount = amount - %i WHERE id=%i''' % (order['amount'], order['productID'])
         db.execute(sql)
         db.commit()
-        sql = '''INSERT INTO Orders(userID, productID, amount, price, type, time) VALUES (%i, %i, %i, %f, %i, %s)''' % (order['id'], order['productID'], order['amount'], order['price'], order['type'], order['time'])
+        sql = '''INSERT INTO Orders(userID, productID, amount, price, type, time, description) VALUES (%i, %i, %i, %f, %i, "%s", "%s")''' % (order['id'], order['productID'], order['amount'], order['price'], order['type'], order['time'], order['description'])
         db.execute(sql)
         db.commit()
         return "Succeed"

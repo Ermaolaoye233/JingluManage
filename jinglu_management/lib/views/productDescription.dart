@@ -4,6 +4,8 @@ import 'package:jinglu_management/views/orderRow.dart';
 import 'package:jinglu_management/models/order.dart';
 import 'package:jinglu_management/dio_client.dart';
 import 'package:jinglu_management/views/relatedOrders.dart';
+import 'package:jinglu_management/models/images.dart';
+import 'dart:convert';
 
 class ProductDescription extends StatelessWidget {
   const ProductDescription({Key? key, required this.product}) : super(key: key);
@@ -19,7 +21,7 @@ class ProductDescription extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16.0, 28.0, 16.0, 0.0),
         children: <Widget>[
-          ProductBar(productName: product.name),
+          ProductBar(product: product),
           Padding(
             // 进货价
             padding: const EdgeInsets.fromLTRB(.0, 16.0, .0, .0),
@@ -116,9 +118,9 @@ class ProductDescription extends StatelessWidget {
 }
 
 class ProductBar extends StatelessWidget {
-  const ProductBar({Key? key, required this.productName}) : super(key: key);
+  const ProductBar({Key? key, required this.product}) : super(key: key);
 
-  final String productName;
+  final Product product;
 
   @override
   Widget build(BuildContext context) {
@@ -128,15 +130,19 @@ class ProductBar extends StatelessWidget {
         children: <Widget>[
           ClipRRect(
             borderRadius: BorderRadius.circular(8.0),
-            child: Image(
-              image: AssetImage("images/placeholder.jpg"),
+            child: Image.memory(
+              product.image == "no_image"
+                  ? base64Decode(placeholder_b64String)
+                  : base64Decode(product.image),
               width: 122,
+              height: 122,
+              fit: BoxFit.fill,
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Text(
-              productName,
+              product.name,
               textAlign: TextAlign.left,
               style: TextStyle(
                   color: Colors.black,
@@ -169,11 +175,14 @@ class RelatedOrders extends StatelessWidget {
 
           if (orders != null) {
             if (orders.length == 0) {
-              return Text("该商品暂无相关订单",
-                  style: TextStyle(
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF263238)),);
+              return Padding(
+                padding: const EdgeInsets.only(top:8.0),
+                child: Text("该商品暂无相关订单",
+                    style: TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.teal,),
+              ));
             }
 
             return Column(children: [

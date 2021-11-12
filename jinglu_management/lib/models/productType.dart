@@ -1,5 +1,7 @@
+import 'package:equatable/equatable.dart';
+
 part 'productType.g.dart';
-class ProductType {
+class ProductType extends Equatable{
   ProductType({
     required this.id,
     required this.type,
@@ -7,6 +9,9 @@ class ProductType {
 
   final int id;
   final String type;
+
+  @override
+  List<Object> get props => [id];
 
   factory ProductType.fromJson(Map<String, dynamic> json) => ProductType(
     id: json["id"],
